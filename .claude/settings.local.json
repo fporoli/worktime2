@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(docker compose exec -T keycloak sh -c ' *)",
+      "Bash(docker run --rm --network worktime2_default curlimages/curl:latest sh -c ' *)",
+      "Bash(npx tsc *)",
+      "Bash(docker compose *)",
+      "Bash(curl -s -o /dev/null -w \"frontend: %{http_code}\\\\n\" http://localhost:5173/)",
+      "Bash(curl -s http://localhost:3000/health)",
+      "Bash(node -e ' *)"
+    ]
+  }
+}

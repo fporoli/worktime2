@@ -1,0 +1,141 @@
+{
+  "common": {
+    "appName": "Worktime",
+    "signOut": "Se déconnecter",
+    "loading": "Chargement…",
+    "save": "Enregistrer",
+    "add": "Ajouter",
+    "create": "Créer",
+    "assign": "Attribuer",
+    "remove": "Retirer",
+    "selectPlaceholder": "Sélectionner...",
+    "cancel": "Annuler"
+  },
+  "nav": {
+    "myTime": "Mon temps",
+    "myTeamTime": "Temps de mon équipe",
+    "managedProjects": "Projets que je gère",
+    "projects": "Projets",
+    "employees": "Employés",
+    "company": "Entreprise",
+    "settings": "Paramètres"
+  },
+  "auth": {
+    "loadFailed": "Impossible de charger votre compte. Veuillez recharger la page.",
+    "adminRequiredTitle": "Droits administrateur requis",
+    "adminRequiredBody": "Vous devez être administrateur de votre entreprise pour voir cette page.",
+    "managerRequiredTitle": "Droits de responsable requis",
+    "managerRequiredBody": "Vous devez avoir le rôle de responsable des employés dans votre entreprise pour voir cette page."
+  },
+  "onboarding": {
+    "title": "Bienvenue sur Worktime",
+    "subtitle": "Indiquez-nous comment vous allez utiliser Worktime pour terminer la configuration de votre compte.",
+    "tabStandalone": "Seulement moi",
+    "tabCompany": "Créer une entreprise",
+    "standaloneDescription": "Vous suivrez vos propres heures de travail. Vous ne ferez partie d'aucune entreprise et ne pourrez pas gérer de projets ni d'employés.",
+    "continueIndividual": "Continuer en tant qu'individu",
+    "companyDescription": "Vous deviendrez administrateur d'une nouvelle entreprise : définissez des projets, intégrez des employés et attribuez des rôles.",
+    "companyNameLabel": "Nom de l'entreprise",
+    "companyNamePlaceholder": "Acme SARL",
+    "createCompany": "Créer l'entreprise"
+  },
+  "timeEntry": {
+    "title": "Saisie quotidienne du temps",
+    "dateLabel": "Date",
+    "addSegmentTitle": "Ajouter un segment",
+    "projectLabel": "Projet / activité",
+    "startLabel": "Début",
+    "endLabel": "Fin",
+    "addSegment": "Ajouter le segment",
+    "errorChooseProject": "Choisissez un projet ou une activité.",
+    "errorInvalidTimes": "Saisissez des heures de début et de fin valides.",
+    "errorEndBeforeStart": "L'heure de fin doit être postérieure à l'heure de début.",
+    "entriesFor": "Entrées du {{date}}",
+    "noEntries": "Aucun temps enregistré pour ce jour pour le moment.",
+    "columnProject": "Projet",
+    "columnTime": "Heure",
+    "columnDuration": "Durée",
+    "companyProjectsGroup": "Projets de l'entreprise",
+    "activitiesGroup": "Activités"
+  },
+  "admin": {
+    "projects": {
+      "title": "Projets",
+      "newProjectTitle": "Nouveau projet",
+      "typeLabel": "Type",
+      "typeProject": "Projet d'entreprise",
+      "typeSubproject": "Sous-projet",
+      "typeActivity": "Activité",
+      "parentProjectLabel": "Projet parent",
+      "nameLabel": "Nom",
+      "columnName": "Nom",
+      "columnType": "Type",
+      "columnStatus": "Statut",
+      "statusArchived": "Archivé",
+      "statusActive": "Actif",
+      "unarchive": "Désarchiver",
+      "archive": "Archiver",
+      "delete": "Supprimer",
+      "assignmentsTitle": "{{name}} — attributions",
+      "assignedEmployees": "Employés assignés",
+      "addEmployeePlaceholder": "Ajouter un employé...",
+      "projectManagers": "Chefs de projet",
+      "addManagerPlaceholder": "Ajouter un chef de projet...",
+      "assignManager": "Assigner un chef de projet"
+    },
+    "employees": {
+      "title": "Employés",
+      "addEmployeeTitle": "Ajouter un employé",
+      "addEmployeeHint": "La personne doit déjà avoir un compte Worktime (elle doit d'abord s'inscrire depuis la page de connexion).",
+      "emailLabel": "E-mail",
+      "emailPlaceholder": "employe@exemple.com",
+      "columnName": "Nom",
+      "columnEmail": "E-mail",
+      "columnRoles": "Rôles",
+      "roleAdmin": "Administrateur",
+      "roleEmployeeManager": "Responsable des employés",
+      "directReportsTitle": "Rattachements directs",
+      "directReportsHint": "Donnez à un responsable des employés une visibilité sur le temps enregistré d'un employé spécifique.",
+      "managesEmployee": "{{manager}} gère {{employee}}",
+      "managerLabel": "Responsable",
+      "employeeLabel": "Employé",
+      "removeFromCompany": "Retirer de l'entreprise"
+    },
+    "company": {
+      "title": "Paramètres de l'entreprise",
+      "nameLabel": "Nom de l'entreprise"
+    }
+  },
+  "manager": {
+    "team": {
+      "title": "Temps de mon équipe",
+      "directReportsCount": "{{count}} rattaché(s) direct(s).",
+      "fromLabel": "Du",
+      "toLabel": "Au",
+      "noEntries": "Aucune entrée sur cette période.",
+      "columnEmployee": "Employé",
+      "columnDate": "Date",
+      "columnProject": "Projet",
+      "columnTime": "Heure",
+      "columnDuration": "Durée"
+    },
+    "project": {
+      "title": "Temps du projet",
+      "listTitle": "Projets que je gère",
+      "noManagedProjects": "Vous n'êtes assigné comme chef d'aucun projet pour le moment.",
+      "backLink": "Projets que je gère",
+      "loadError": "Impossible de charger les entrées",
+      "noEntries": "Aucune entrée sur cette période.",
+      "columnEmployee": "Employé",
+      "columnDate": "Date",
+      "columnTime": "Heure",
+      "columnDuration": "Durée"
+    }
+  },
+  "settings": {
+    "title": "Paramètres",
+    "languageLabel": "Langue",
+    "languageHint": "Choisissez la langue utilisée dans Worktime. Elle sera enregistrée sur votre compte.",
+    "saved": "Enregistré"
+  }
+}

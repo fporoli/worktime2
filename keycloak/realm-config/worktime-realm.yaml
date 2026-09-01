@@ -1,0 +1,37 @@
+realm: worktime
+enabled: true
+registrationAllowed: true
+registrationEmailAsUsername: true
+resetPasswordAllowed: true
+verifyEmail: false
+loginWithEmailAllowed: true
+duplicateEmailsAllowed: false
+editUsernameAllowed: false
+rememberMe: true
+bruteForceProtected: true
+
+smtpServer:
+  host: mailpit
+  port: "1025"
+  from: noreply@worktime.local
+  fromDisplayName: Worktime
+  auth: "false"
+  starttls: "false"
+
+clients:
+  - clientId: worktime-frontend
+    name: Worktime Frontend
+    enabled: true
+    publicClient: true
+    protocol: openid-connect
+    standardFlowEnabled: true
+    implicitFlowEnabled: false
+    directAccessGrantsEnabled: false
+    serviceAccountsEnabled: false
+    redirectUris:
+      - "http://localhost:5173/*"
+    webOrigins:
+      - "http://localhost:5173"
+    attributes:
+      "pkce.code.challenge.method": "S256"
+      "post.logout.redirect.uris": "http://localhost:5173/*"

@@ -1,0 +1,141 @@
+{
+  "common": {
+    "appName": "Worktime",
+    "signOut": "Sign out",
+    "loading": "Loading…",
+    "save": "Save",
+    "add": "Add",
+    "create": "Create",
+    "assign": "Assign",
+    "remove": "Remove",
+    "selectPlaceholder": "Select...",
+    "cancel": "Cancel"
+  },
+  "nav": {
+    "myTime": "My time",
+    "myTeamTime": "My team's time",
+    "managedProjects": "Projects I manage",
+    "projects": "Projects",
+    "employees": "Employees",
+    "company": "Company",
+    "settings": "Settings"
+  },
+  "auth": {
+    "loadFailed": "Could not load your account. Try reloading the page.",
+    "adminRequiredTitle": "Admin access required",
+    "adminRequiredBody": "You need admin rights in your company to view this page.",
+    "managerRequiredTitle": "Manager access required",
+    "managerRequiredBody": "You need employee-manager rights in your company to view this page."
+  },
+  "onboarding": {
+    "title": "Welcome to Worktime",
+    "subtitle": "Tell us how you'll be using Worktime to finish setting up your account.",
+    "tabStandalone": "Just me",
+    "tabCompany": "Create a company",
+    "standaloneDescription": "You'll track your own working hours. You won't be part of a company and can't manage projects or other employees.",
+    "continueIndividual": "Continue as an individual",
+    "companyDescription": "You'll become the admin of a new company: define projects, onboard employees, and assign roles.",
+    "companyNameLabel": "Company name",
+    "companyNamePlaceholder": "Acme Inc.",
+    "createCompany": "Create company"
+  },
+  "timeEntry": {
+    "title": "Daily time entry",
+    "dateLabel": "Date",
+    "addSegmentTitle": "Add a segment",
+    "projectLabel": "Project / activity",
+    "startLabel": "Start",
+    "endLabel": "End",
+    "addSegment": "Add segment",
+    "errorChooseProject": "Choose a project or activity.",
+    "errorInvalidTimes": "Enter valid start and end times.",
+    "errorEndBeforeStart": "End time must be after start time.",
+    "entriesFor": "Entries for {{date}}",
+    "noEntries": "No time logged for this day yet.",
+    "columnProject": "Project",
+    "columnTime": "Time",
+    "columnDuration": "Duration",
+    "companyProjectsGroup": "Company projects",
+    "activitiesGroup": "Activities"
+  },
+  "admin": {
+    "projects": {
+      "title": "Projects",
+      "newProjectTitle": "New project",
+      "typeLabel": "Type",
+      "typeProject": "Company project",
+      "typeSubproject": "Subproject",
+      "typeActivity": "Activity",
+      "parentProjectLabel": "Parent project",
+      "nameLabel": "Name",
+      "columnName": "Name",
+      "columnType": "Type",
+      "columnStatus": "Status",
+      "statusArchived": "Archived",
+      "statusActive": "Active",
+      "unarchive": "Unarchive",
+      "archive": "Archive",
+      "delete": "Delete",
+      "assignmentsTitle": "{{name}} — assignments",
+      "assignedEmployees": "Assigned employees",
+      "addEmployeePlaceholder": "Add employee...",
+      "projectManagers": "Project managers",
+      "addManagerPlaceholder": "Add project manager...",
+      "assignManager": "Assign manager"
+    },
+    "employees": {
+      "title": "Employees",
+      "addEmployeeTitle": "Add an employee",
+      "addEmployeeHint": "The person must already have a Worktime account (they sign up via the login page first).",
+      "emailLabel": "Email",
+      "emailPlaceholder": "employee@example.com",
+      "columnName": "Name",
+      "columnEmail": "Email",
+      "columnRoles": "Roles",
+      "roleAdmin": "Admin",
+      "roleEmployeeManager": "Employee manager",
+      "directReportsTitle": "Direct-report assignments",
+      "directReportsHint": "Give an employee manager visibility into a specific employee's logged time.",
+      "managesEmployee": "{{manager}} manages {{employee}}",
+      "managerLabel": "Manager",
+      "employeeLabel": "Employee",
+      "removeFromCompany": "Remove from company"
+    },
+    "company": {
+      "title": "Company settings",
+      "nameLabel": "Company name"
+    }
+  },
+  "manager": {
+    "team": {
+      "title": "My team's time",
+      "directReportsCount": "{{count}} direct report(s).",
+      "fromLabel": "From",
+      "toLabel": "To",
+      "noEntries": "No entries in this range.",
+      "columnEmployee": "Employee",
+      "columnDate": "Date",
+      "columnProject": "Project",
+      "columnTime": "Time",
+      "columnDuration": "Duration"
+    },
+    "project": {
+      "title": "Project time entries",
+      "listTitle": "Projects I manage",
+      "noManagedProjects": "You are not assigned as a manager on any project yet.",
+      "backLink": "Projects I manage",
+      "loadError": "Could not load entries",
+      "noEntries": "No entries in this range.",
+      "columnEmployee": "Employee",
+      "columnDate": "Date",
+      "columnTime": "Time",
+      "columnDuration": "Duration"
+    }
+  },
+  "settings": {
+    "title": "Settings",
+    "languageLabel": "Language",
+    "languageHint": "Choose the language used across Worktime. This is saved to your account.",
+    "saved": "Saved"
+  }
+}

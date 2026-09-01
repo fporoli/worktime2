@@ -1,0 +1,27 @@
+# Optional: enable "Sign in with Google" on the worktime realm.
+#
+# 1. Create OAuth 2.0 credentials in Google Cloud Console (APIs & Services > Credentials),
+#    with authorized redirect URI:
+#    http://localhost:8080/realms/worktime/broker/google/endpoint
+# 2. Set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET in your root .env file.
+# 3. Copy this file to google-idp.yaml (same directory) so it gets picked up by
+#    keycloak-config-cli, then restart the stack.
+#
+# Leaving this as .example (i.e. not renaming it) means the stack comes up without
+# Google login and email/password registration still works normally.
+
+realm: worktime
+
+identityProviders:
+  - alias: google
+    providerId: google
+    enabled: true
+    trustEmail: true
+    storeToken: false
+    addReadTokenRoleOnCreate: false
+    firstBrokerLoginFlowAlias: first broker login
+    config:
+      clientId: ${GOOGLE_CLIENT_ID}
+      clientSecret: ${GOOGLE_CLIENT_SECRET}
+      defaultScope: openid profile email
+      useJwksUrl: "true"

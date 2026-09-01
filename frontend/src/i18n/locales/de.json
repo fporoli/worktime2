@@ -1,0 +1,141 @@
+{
+  "common": {
+    "appName": "Worktime",
+    "signOut": "Abmelden",
+    "loading": "Wird geladen…",
+    "save": "Speichern",
+    "add": "Hinzufügen",
+    "create": "Erstellen",
+    "assign": "Zuweisen",
+    "remove": "Entfernen",
+    "selectPlaceholder": "Auswählen...",
+    "cancel": "Abbrechen"
+  },
+  "nav": {
+    "myTime": "Meine Zeit",
+    "myTeamTime": "Zeit meines Teams",
+    "managedProjects": "Von mir verwaltete Projekte",
+    "projects": "Projekte",
+    "employees": "Mitarbeiter",
+    "company": "Unternehmen",
+    "settings": "Einstellungen"
+  },
+  "auth": {
+    "loadFailed": "Ihr Konto konnte nicht geladen werden. Bitte laden Sie die Seite neu.",
+    "adminRequiredTitle": "Administratorrechte erforderlich",
+    "adminRequiredBody": "Sie benötigen Administratorrechte in Ihrem Unternehmen, um diese Seite anzuzeigen.",
+    "managerRequiredTitle": "Manager-Rechte erforderlich",
+    "managerRequiredBody": "Sie benötigen die Rolle „Mitarbeiterverantwortlicher“ in Ihrem Unternehmen, um diese Seite anzuzeigen."
+  },
+  "onboarding": {
+    "title": "Willkommen bei Worktime",
+    "subtitle": "Teilen Sie uns mit, wie Sie Worktime nutzen werden, um die Einrichtung Ihres Kontos abzuschließen.",
+    "tabStandalone": "Nur ich",
+    "tabCompany": "Unternehmen erstellen",
+    "standaloneDescription": "Sie erfassen nur Ihre eigenen Arbeitsstunden. Sie gehören keinem Unternehmen an und können keine Projekte oder Mitarbeiter verwalten.",
+    "continueIndividual": "Als Einzelperson fortfahren",
+    "companyDescription": "Sie werden Administrator eines neuen Unternehmens: Projekte definieren, Mitarbeiter einbinden und Rollen zuweisen.",
+    "companyNameLabel": "Firmenname",
+    "companyNamePlaceholder": "Acme GmbH",
+    "createCompany": "Unternehmen erstellen"
+  },
+  "timeEntry": {
+    "title": "Tägliche Zeiterfassung",
+    "dateLabel": "Datum",
+    "addSegmentTitle": "Zeitabschnitt hinzufügen",
+    "projectLabel": "Projekt / Aktivität",
+    "startLabel": "Beginn",
+    "endLabel": "Ende",
+    "addSegment": "Abschnitt hinzufügen",
+    "errorChooseProject": "Wählen Sie ein Projekt oder eine Aktivität aus.",
+    "errorInvalidTimes": "Geben Sie gültige Start- und Endzeiten ein.",
+    "errorEndBeforeStart": "Die Endzeit muss nach der Startzeit liegen.",
+    "entriesFor": "Einträge für {{date}}",
+    "noEntries": "Für diesen Tag wurde noch keine Zeit erfasst.",
+    "columnProject": "Projekt",
+    "columnTime": "Zeit",
+    "columnDuration": "Dauer",
+    "companyProjectsGroup": "Unternehmensprojekte",
+    "activitiesGroup": "Aktivitäten"
+  },
+  "admin": {
+    "projects": {
+      "title": "Projekte",
+      "newProjectTitle": "Neues Projekt",
+      "typeLabel": "Typ",
+      "typeProject": "Unternehmensprojekt",
+      "typeSubproject": "Unterprojekt",
+      "typeActivity": "Aktivität",
+      "parentProjectLabel": "Übergeordnetes Projekt",
+      "nameLabel": "Name",
+      "columnName": "Name",
+      "columnType": "Typ",
+      "columnStatus": "Status",
+      "statusArchived": "Archiviert",
+      "statusActive": "Aktiv",
+      "unarchive": "Wiederherstellen",
+      "archive": "Archivieren",
+      "delete": "Löschen",
+      "assignmentsTitle": "{{name}} — Zuweisungen",
+      "assignedEmployees": "Zugewiesene Mitarbeiter",
+      "addEmployeePlaceholder": "Mitarbeiter hinzufügen...",
+      "projectManagers": "Projektleiter",
+      "addManagerPlaceholder": "Projektleiter hinzufügen...",
+      "assignManager": "Projektleiter zuweisen"
+    },
+    "employees": {
+      "title": "Mitarbeiter",
+      "addEmployeeTitle": "Mitarbeiter hinzufügen",
+      "addEmployeeHint": "Die Person muss bereits ein Worktime-Konto haben (zuerst über die Anmeldeseite registrieren).",
+      "emailLabel": "E-Mail",
+      "emailPlaceholder": "mitarbeiter@beispiel.de",
+      "columnName": "Name",
+      "columnEmail": "E-Mail",
+      "columnRoles": "Rollen",
+      "roleAdmin": "Administrator",
+      "roleEmployeeManager": "Mitarbeiterverantwortlicher",
+      "directReportsTitle": "Direkte Zuordnungen",
+      "directReportsHint": "Geben Sie einem Mitarbeiterverantwortlichen Einblick in die erfassten Zeiten eines bestimmten Mitarbeiters.",
+      "managesEmployee": "{{manager}} verwaltet {{employee}}",
+      "managerLabel": "Verantwortlicher",
+      "employeeLabel": "Mitarbeiter",
+      "removeFromCompany": "Aus Unternehmen entfernen"
+    },
+    "company": {
+      "title": "Unternehmenseinstellungen",
+      "nameLabel": "Firmenname"
+    }
+  },
+  "manager": {
+    "team": {
+      "title": "Zeit meines Teams",
+      "directReportsCount": "{{count}} direkt unterstellte Mitarbeiter.",
+      "fromLabel": "Von",
+      "toLabel": "Bis",
+      "noEntries": "Keine Einträge in diesem Zeitraum.",
+      "columnEmployee": "Mitarbeiter",
+      "columnDate": "Datum",
+      "columnProject": "Projekt",
+      "columnTime": "Zeit",
+      "columnDuration": "Dauer"
+    },
+    "project": {
+      "title": "Projektzeiterfassung",
+      "listTitle": "Von mir verwaltete Projekte",
+      "noManagedProjects": "Sie sind noch keinem Projekt als Projektleiter zugewiesen.",
+      "backLink": "Von mir verwaltete Projekte",
+      "loadError": "Einträge konnten nicht geladen werden",
+      "noEntries": "Keine Einträge in diesem Zeitraum.",
+      "columnEmployee": "Mitarbeiter",
+      "columnDate": "Datum",
+      "columnTime": "Zeit",
+      "columnDuration": "Dauer"
+    }
+  },
+  "settings": {
+    "title": "Einstellungen",
+    "languageLabel": "Sprache",
+    "languageHint": "Wählen Sie die in Worktime verwendete Sprache. Diese wird in Ihrem Konto gespeichert.",
+    "saved": "Gespeichert"
+  }
+}
