@@ -21,7 +21,7 @@ identityProviders:
     addReadTokenRoleOnCreate: false
     firstBrokerLoginFlowAlias: first broker login
     config:
-      clientId: ${GOOGLE_CLIENT_ID}
-      clientSecret: ${GOOGLE_CLIENT_SECRET}
+      clientId: $(GOOGLE_CLIENT_ID)
+      clientSecret: $(GOOGLE_CLIENT_SECRET)
       defaultScope: openid profile email
       useJwksUrl: "true"

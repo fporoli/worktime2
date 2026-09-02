@@ -29,9 +29,9 @@ clients:
     directAccessGrantsEnabled: false
     serviceAccountsEnabled: false
     redirectUris:
-      - "http://localhost:5173/*"
+      - "$(FRONTEND_ORIGIN)/*"
     webOrigins:
-      - "http://localhost:5173"
+      - "$(FRONTEND_ORIGIN)"
     attributes:
       "pkce.code.challenge.method": "S256"
-      "post.logout.redirect.uris": "http://localhost:5173/*"
+      "post.logout.redirect.uris": "$(FRONTEND_ORIGIN)/*"

@@ -7,3 +7,4 @@ build/
 backend/dist/
 frontend/dist/
 pgdata/
+azure/.secrets.env

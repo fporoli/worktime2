@@ -7,7 +7,12 @@
       "Bash(docker compose *)",
       "Bash(curl -s -o /dev/null -w \"frontend: %{http_code}\\\\n\" http://localhost:5173/)",
       "Bash(curl -s http://localhost:3000/health)",
-      "Bash(node -e ' *)"
+      "Bash(node -e ' *)",
+      "Bash(bash -n /Users/fabio/worktime2/azure/deploy.sh)",
+      "Bash(az deployment *)",
+      "Bash(python3 -c \"import json,sys; d=json.load\\(sys.stdin\\); print\\('state:', d['properties']['provisioningState']\\); print\\('timestamp:', d['properties']['timestamp']\\)\")",
+      "Bash(az postgres *)",
+      "Bash(az containerapp *)"
     ]
   }
 }

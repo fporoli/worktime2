@@ -13,6 +13,7 @@ export default new DataSource({
   type: 'postgres',
   url: process.env.DATABASE_URL,
   schema: process.env.DATABASE_SCHEMA ?? 'app',
+  ssl: process.env.DATABASE_SSL === 'true' ? { rejectUnauthorized: false } : undefined,
   entities: [
     AppUser,
     Company,

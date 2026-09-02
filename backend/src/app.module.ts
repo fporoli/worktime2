@@ -28,6 +28,7 @@ import { UsersModule } from './users/users.module';
         type: 'postgres',
         url: configService.get<string>('app.databaseUrl'),
         schema: configService.get<string>('app.databaseSchema'),
+        ssl: configService.get<boolean>('app.databaseSsl') ? { rejectUnauthorized: false } : undefined,
         entities: [
           AppUser,
           Company,
