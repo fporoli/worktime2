@@ -1,0 +1,43 @@
+# Optional: enable "Sign in with Microsoft" (Azure AD / Entra ID) on the worktime realm.
+#
+# This targets your specific Azure AD tenant (not the multi-tenant "common" endpoint),
+# matching a single-tenant App registration.
+#
+# 1. In the Azure Portal, open your App registration (Anwendungsregistrierung):
+#    - App registrations > (your app) > Certificates & secrets > New client secret.
+#      Copy the secret VALUE (not the Secret ID) immediately - it's only shown once.
+#    - App registrations > (your app) > Authentication > Add a platform > Web,
+#      with redirect URI:
+#      http://localhost:8080/realms/worktime/broker/azure/endpoint
+# 2. Set AZURE_CLIENT_ID, AZURE_CLIENT_SECRET and AZURE_TENANT_ID in your root .env file.
+#    (AZURE_CLIENT_ID and AZURE_TENANT_ID are not secret - they're already filled in
+#    .env.example as a starting point; only the client secret needs to be pasted in.)
+# 3. Copy this file to azure-idp.yaml (same directory) so it gets picked up by
+#    keycloak-config-cli, then restart the stack (docker compose up -d).
+#
+# Leaving this as .example (i.e. not renaming it) means the stack comes up without
+# Microsoft login and email/password registration still works normally.
+
+realm: worktime
+
+identityProviders:
+  - alias: azure
+    providerId: oidc
+    enabled: true
+    trustEmail: true
+    storeToken: false
+    addReadTokenRoleOnCreate: false
+    firstBrokerLoginFlowAlias: first broker login
+    config:
+      clientId: ${AZURE_CLIENT_ID}
+      clientSecret: ${AZURE_CLIENT_SECRET}
+      clientAuthMethod: client_secret_post
+      defaultScope: openid profile email
+      useJwksUrl: "true"
+      validateSignature: "true"
+      issuer: https://login.microsoftonline.com/${AZURE_TENANT_ID}/v2.0
+      authorizationUrl: https://login.microsoftonline.com/${AZURE_TENANT_ID}/oauth2/v2.0/authorize
+      tokenUrl: https://login.microsoftonline.com/${AZURE_TENANT_ID}/oauth2/v2.0/token
+      logoutUrl: https://login.microsoftonline.com/${AZURE_TENANT_ID}/oauth2/v2.0/logout
+      jwksUrl: https://login.microsoftonline.com/${AZURE_TENANT_ID}/discovery/v2.0/keys
+      userInfoUrl: https://graph.microsoft.com/oidc/userinfo

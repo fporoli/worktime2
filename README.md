@@ -5,8 +5,8 @@ storage (separate `auth` and `app` schemas), a NestJS REST API, and a React fron
 
 ## Architecture
 
-- **Keycloak** handles authentication only (registration, login, password reset, optional Google sign-in). Its own
-  tables live in the Postgres `auth` schema.
+- **Keycloak** handles authentication only (registration, login, password reset, optional Google and Microsoft/Azure
+  AD sign-in). Its own tables live in the Postgres `auth` schema.
 - **Postgres `app` schema**, owned by the NestJS backend via TypeORM, holds all authorization and business data:
   companies, memberships/roles, projects, assignments, and time entries.
 - **Backend** (NestJS) validates JWTs against Keycloak's public JWKS endpoint, resolves the caller's app-side
@@ -54,6 +54,14 @@ The `backend` service runs pending TypeORM migrations before starting.
 
 By default only email/password login is enabled. To add Google sign-in, see
 `keycloak/realm-config/google-idp.yaml.example`.
+
+### Optional: Microsoft / Azure AD sign-in
+
+To add "Sign in with Microsoft" against a specific Azure AD tenant, see
+`keycloak/realm-config/azure-idp.yaml.example`. `AZURE_CLIENT_ID` and `AZURE_TENANT_ID` are already filled in
+`.env`; you just need to generate a client secret in the Azure Portal (App registrations > your app >
+Certificates & secrets) and set `AZURE_CLIENT_SECRET`, add the redirect URI documented in that file to the app's
+Authentication settings, then rename the file to `azure-idp.yaml` and restart the stack.
 
 ## Repository layout
 
