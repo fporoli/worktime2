@@ -14,7 +14,8 @@
       "Bash(az postgres *)",
       "Bash(az containerapp *)",
       "Bash(./azure/deploy.sh)",
-      "Bash(tee /tmp/azure_deploy5.log)"
+      "Bash(tee /tmp/azure_deploy5.log)",
+      "WebFetch(domain:57.129.0.179)"
     ]
   }
 }
