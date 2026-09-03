@@ -10,7 +10,6 @@ REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 RESOURCE_GROUP="rg-worktime-prod"
 LOCATION="westeurope"
 CAE_NAME="cae-worktime-prod"
-POSTGRES_SERVER_NAME_HINT="psql-worktime-prod"
 SECRETS_FILE="$SCRIPT_DIR/.secrets.env"
 
 log() { echo "==> $*"; }
@@ -33,10 +32,6 @@ if ! az account show >/dev/null 2>&1; then
   exit 1
 fi
 log "Logged in as: $(az account show --query user.name -o tsv) (subscription: $(az account show --query name -o tsv))"
-
-az extension add --name rdbms-connect -y --only-show-errors 2>/dev/null \
-  || az extension update --name rdbms-connect -y --only-show-errors >/dev/null 2>&1 \
-  || true
 
 # shellcheck disable=SC1091
 set -a
@@ -67,44 +62,162 @@ fi
 log "Creating resource group $RESOURCE_GROUP in $LOCATION"
 az group create -n "$RESOURCE_GROUP" -l "$LOCATION" -o none
 
-log "Deploying platform resources (this can take 5-10 minutes, mostly Postgres)"
+log "Deploying platform resources (this can take a few minutes)"
 DEPLOY_OUTPUT=$(az deployment group create \
   -g "$RESOURCE_GROUP" \
   -f "$SCRIPT_DIR/main.bicep" \
-  --parameters postgresAdminUsername="$POSTGRES_ADMIN_USERNAME" postgresAdminPassword="$POSTGRES_ADMIN_PASSWORD" \
   --query properties.outputs -o json)
 
 ACR_NAME=$(echo "$DEPLOY_OUTPUT" | python3 -c "import json,sys;print(json.load(sys.stdin)['acrName']['value'])")
 ACR_LOGIN_SERVER=$(echo "$DEPLOY_OUTPUT" | python3 -c "import json,sys;print(json.load(sys.stdin)['acrLoginServer']['value'])")
-POSTGRES_SERVER_NAME=$(echo "$DEPLOY_OUTPUT" | python3 -c "import json,sys;print(json.load(sys.stdin)['postgresServerName']['value'])")
-POSTGRES_FQDN=$(echo "$DEPLOY_OUTPUT" | python3 -c "import json,sys;print(json.load(sys.stdin)['postgresFqdn']['value'])")
-POSTGRES_DB=$(echo "$DEPLOY_OUTPUT" | python3 -c "import json,sys;print(json.load(sys.stdin)['postgresDatabaseName']['value'])")
+POSTGRES_DATA_STORAGE_NAME=$(echo "$DEPLOY_OUTPUT" | python3 -c "import json,sys;print(json.load(sys.stdin)['postgresDataStorageName']['value'])")
 
 log "ACR: $ACR_LOGIN_SERVER"
-log "Postgres: $POSTGRES_FQDN"
 
-# --- 2. schema creation (Bicep can't run arbitrary SQL) ---
-# 'az postgres flexible-server execute' connects directly from this machine, not from
-# inside Azure, so the "AllowAzureServices" rule alone doesn't cover it - temporarily
-# whitelist this machine's public IP for the duration of the schema-creation call.
-log "Creating auth/app schemas on Postgres"
-DEPLOY_MACHINE_IP=$(curl -s https://api.ipify.org)
-az postgres flexible-server firewall-rule create \
-  -g "$RESOURCE_GROUP" -s "$POSTGRES_SERVER_NAME" \
-  --name AllowDeployMachine \
-  --start-ip-address "$DEPLOY_MACHINE_IP" --end-ip-address "$DEPLOY_MACHINE_IP" \
-  --only-show-errors -o none
+CAE_ID=$(az containerapp env show -g "$RESOURCE_GROUP" -n "$CAE_NAME" --query id -o tsv)
 
-az postgres flexible-server execute \
-  -n "$POSTGRES_SERVER_NAME" -d "$POSTGRES_DB" \
-  -u "$POSTGRES_ADMIN_USERNAME" -p "$POSTGRES_ADMIN_PASSWORD" \
-  -q "CREATE SCHEMA IF NOT EXISTS auth; CREATE SCHEMA IF NOT EXISTS app;" \
-  --only-show-errors -o none
+# --- 2. postgres container app (self-hosted image, not a managed server) ---
+# Runs as a single-replica container app with its data directory on the "postgres-data"
+# Azure Files share (see main.bicep) so it survives restarts/redeploys instead of
+# resetting every time (Container Apps are otherwise ephemeral). Internal-only TCP
+# ingress: reachable by other apps in this environment at the bare app name "postgres"
+# (confirmed directly with a throwaway diagnostic container - the "<app>.internal.<env
+# domain>" FQDN shown in "az containerapp create"'s human-readable output does NOT work
+# for TCP service-to-service traffic, only the bare name does), never from the public
+# internet.
+POSTGRES_DB="worktime"
+POSTGRES_HOST="postgres"
 
-az postgres flexible-server firewall-rule delete \
-  -g "$RESOURCE_GROUP" -s "$POSTGRES_SERVER_NAME" \
-  --name AllowDeployMachine --yes \
-  --only-show-errors -o none
+if az containerapp show -g "$RESOURCE_GROUP" -n postgres >/dev/null 2>&1; then
+  log "Container app 'postgres' already exists - skipping create (use 'az containerapp update' to change it)"
+else
+  log "Creating postgres container app"
+  # 'az containerapp create --yaml' has a bug in this CLI version: any 'ingress:' block
+  # in the yaml produces a generic "JSON value could not be converted to System.Boolean"
+  # 400 error, regardless of its contents (reproduced directly, isolated to just the
+  # presence of the ingress key). So ingress/scale/resources/secrets/env are set the
+  # normal way via flags, and the Azure Files volume mount (which flags don't support at
+  # all) is layered on afterward via 'update --yaml' instead.
+  az containerapp create -n postgres -g "$RESOURCE_GROUP" \
+    --environment "$CAE_NAME" \
+    --image postgres:16-alpine \
+    --ingress internal --transport tcp --target-port 5432 \
+    --min-replicas 1 --max-replicas 1 --cpu 0.5 --memory 1.0Gi \
+    --secrets pg-user="$POSTGRES_ADMIN_USERNAME" pg-pass="$POSTGRES_ADMIN_PASSWORD" \
+    --env-vars \
+      POSTGRES_USER=secretref:pg-user \
+      POSTGRES_PASSWORD=secretref:pg-pass \
+      POSTGRES_DB="$POSTGRES_DB" \
+      PGDATA=/var/lib/postgresql/data/pgdata \
+    -o none
+
+  # 'update --yaml' replaces whatever top-level sections it includes wholesale (verified:
+  # it is NOT a merge) - the full container spec (env included, not just volumeMounts) is
+  # restated here so the env vars set above aren't wiped, and 'configuration' is omitted
+  # entirely so the ingress/secrets set above are left untouched.
+  POSTGRES_VOLUME_YAML="$(mktemp)"
+  cat > "$POSTGRES_VOLUME_YAML" <<EOF
+properties:
+  template:
+    containers:
+      - image: postgres:16-alpine
+        name: postgres
+        resources:
+          cpu: 0.5
+          memory: 1.0Gi
+        env:
+          - name: POSTGRES_USER
+            secretRef: pg-user
+          - name: POSTGRES_PASSWORD
+            secretRef: pg-pass
+          - name: POSTGRES_DB
+            value: "$POSTGRES_DB"
+          - name: PGDATA
+            value: /var/lib/postgresql/data/pgdata
+        volumeMounts:
+          - volumeName: postgres-data
+            mountPath: /var/lib/postgresql/data
+    volumes:
+      - name: postgres-data
+        storageType: AzureFile
+        storageName: $POSTGRES_DATA_STORAGE_NAME
+    scale:
+      minReplicas: 1
+      maxReplicas: 1
+EOF
+  az containerapp update -n postgres -g "$RESOURCE_GROUP" --yaml "$POSTGRES_VOLUME_YAML" -o none
+  rm -f "$POSTGRES_VOLUME_YAML"
+fi
+
+# --- one-shot schema creation (Bicep can't run arbitrary SQL, and there's no managed-server
+# control-plane API here) - waits for Postgres to accept connections, then creates the
+# auth/app schemas. Idempotent (CREATE SCHEMA IF NOT EXISTS), so safe to rerun every deploy.
+# Jobs' '--yaml' create doesn't hit the ingress bug above (jobs have no ingress concept),
+# and flag-based '--args "-c" "..."' hits a *different* CLI bug in this version (fails
+# even on the exact example from 'az containerapp job create --help' - any arg starting
+# with '-' breaks argparse) - so --yaml is the reliable path here, not a fallback.
+if az containerapp job show -g "$RESOURCE_GROUP" -n postgres-init >/dev/null 2>&1; then
+  log "Job 'postgres-init' already exists - skipping create"
+else
+  log "Creating postgres-init job"
+  POSTGRES_INIT_YAML="$(mktemp)"
+  cat > "$POSTGRES_INIT_YAML" <<EOF
+location: $LOCATION
+properties:
+  environmentId: $CAE_ID
+  configuration:
+    triggerType: Manual
+    replicaTimeout: 300
+    replicaRetryLimit: 1
+    manualTriggerConfig:
+      parallelism: 1
+      replicaCompletionCount: 1
+    secrets:
+      - name: pg-user
+        value: "$POSTGRES_ADMIN_USERNAME"
+      - name: pg-pass
+        value: "$POSTGRES_ADMIN_PASSWORD"
+  template:
+    containers:
+      - image: postgres:16-alpine
+        name: postgres-init
+        command:
+          - sh
+          - -c
+          - |
+            until pg_isready -h $POSTGRES_HOST -p 5432 -U "\$POSTGRES_USER"; do sleep 3; done
+            psql "postgresql://\$POSTGRES_USER:\$POSTGRES_PASSWORD@$POSTGRES_HOST:5432/$POSTGRES_DB" -c "CREATE SCHEMA IF NOT EXISTS auth; CREATE SCHEMA IF NOT EXISTS app;"
+        env:
+          - name: POSTGRES_USER
+            secretRef: pg-user
+          - name: POSTGRES_PASSWORD
+            secretRef: pg-pass
+        resources:
+          cpu: 0.25
+          memory: 0.5Gi
+EOF
+  az containerapp job create -n postgres-init -g "$RESOURCE_GROUP" --yaml "$POSTGRES_INIT_YAML" -o none
+  rm -f "$POSTGRES_INIT_YAML"
+fi
+
+log "Running postgres schema init job"
+az containerapp job start -n postgres-init -g "$RESOURCE_GROUP" -o none
+
+log "Waiting for postgres schema init job to finish..."
+for _ in $(seq 1 30); do
+  STATUS=$(az containerapp job execution list -n postgres-init -g "$RESOURCE_GROUP" \
+    --query "[0].properties.status" -o tsv 2>/dev/null || echo "")
+  if [ "$STATUS" = "Succeeded" ]; then
+    log "Postgres schemas ready"
+    break
+  fi
+  if [ "$STATUS" = "Failed" ]; then
+    echo "Postgres schema init job failed. Check logs with:" >&2
+    echo "  az containerapp job logs show -n postgres-init -g $RESOURCE_GROUP" >&2
+    exit 1
+  fi
+  sleep 10
+done
 
 # --- 3. compute FQDNs up front ---
 DEFAULT_DOMAIN=$(az containerapp env show -g "$RESOURCE_GROUP" -n "$CAE_NAME" \
@@ -152,7 +265,7 @@ else
              kc-admin="$KEYCLOAK_ADMIN_USER" kc-admin-pass="$KEYCLOAK_ADMIN_PASSWORD" \
     --env-vars \
       KC_DB=postgres \
-      KC_DB_URL="jdbc:postgresql://$POSTGRES_FQDN:5432/$POSTGRES_DB?currentSchema=auth&sslmode=require" \
+      KC_DB_URL="jdbc:postgresql://$POSTGRES_HOST:5432/$POSTGRES_DB?currentSchema=auth" \
       KC_DB_SCHEMA=auth \
       KC_DB_USERNAME=secretref:pg-user \
       KC_DB_PASSWORD=secretref:pg-pass \
@@ -238,7 +351,7 @@ done
 # happens often), which loses the race against Container Apps' startup probe and
 # causes an unhealthy-replica restart loop. Run it once here instead; the app image's
 # own CMD is just 'node dist/src/main.js' (fast).
-DB_URL="postgres://$POSTGRES_ADMIN_USERNAME:$POSTGRES_ADMIN_PASSWORD@$POSTGRES_FQDN:5432/$POSTGRES_DB"
+DB_URL="postgres://$POSTGRES_ADMIN_USERNAME:$POSTGRES_ADMIN_PASSWORD@$POSTGRES_HOST:5432/$POSTGRES_DB"
 
 if az containerapp job show -g "$RESOURCE_GROUP" -n backend-migrate >/dev/null 2>&1; then
   log "Job 'backend-migrate' already exists - skipping create"
@@ -251,7 +364,7 @@ else
     --registry-server "$ACR_LOGIN_SERVER" --registry-identity system \
     --cpu 0.5 --memory 1.0Gi \
     --secrets db-url="$DB_URL" \
-    --env-vars DATABASE_URL=secretref:db-url DATABASE_SCHEMA=app DATABASE_SSL=true \
+    --env-vars DATABASE_URL=secretref:db-url DATABASE_SCHEMA=app \
     -o none \
     --command "npm" \
     --args "run" "migration:run"
@@ -293,7 +406,6 @@ else
       NODE_ENV=production PORT=3000 \
       DATABASE_URL=secretref:db-url \
       DATABASE_SCHEMA=app \
-      DATABASE_SSL=true \
       KEYCLOAK_ISSUER_URL="https://$KEYCLOAK_FQDN/realms/worktime" \
       KEYCLOAK_INTERNAL_ISSUER_URL="https://$KEYCLOAK_FQDN/realms/worktime" \
       FRONTEND_ORIGIN="https://$FRONTEND_FQDN" \

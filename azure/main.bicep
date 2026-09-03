@@ -1,19 +1,12 @@
 @description('Location for all resources')
 param location string = resourceGroup().location
 
-@description('Postgres Flexible Server admin username')
-param postgresAdminUsername string = 'worktimeadmin'
-
-@secure()
-@description('Postgres Flexible Server admin password')
-param postgresAdminPassword string
-
 var uniqueSuffix = uniqueString(resourceGroup().id)
 var acrName = 'acrworktimeprod${uniqueSuffix}'
 var logAnalyticsName = 'log-worktime-prod'
 var containerAppsEnvName = 'cae-worktime-prod'
-var postgresServerName = 'psql-worktime-prod-${uniqueSuffix}'
-var postgresDatabaseName = 'worktime'
+var storageAccountName = 'stwtprod${uniqueSuffix}'
+var postgresDataShareName = 'postgres-data'
 
 resource logAnalytics 'Microsoft.OperationalInsights/workspaces@2022-10-01' = {
   name: logAnalyticsName
@@ -37,6 +30,36 @@ resource acr 'Microsoft.ContainerRegistry/registries@2023-07-01' = {
   }
 }
 
+// Postgres itself runs as a plain container app (see deploy.sh) rather than a managed
+// Azure Database for PostgreSQL server - this share backs its data directory so it
+// survives container restarts/redeploys instead of resetting every time (Container Apps
+// are otherwise ephemeral).
+resource storageAccount 'Microsoft.Storage/storageAccounts@2023-01-01' = {
+  name: storageAccountName
+  location: location
+  kind: 'StorageV2'
+  sku: {
+    name: 'Standard_LRS'
+  }
+  properties: {
+    minimumTlsVersion: 'TLS1_2'
+    allowSharedKeyAccess: true
+  }
+}
+
+resource fileServices 'Microsoft.Storage/storageAccounts/fileServices@2023-01-01' = {
+  parent: storageAccount
+  name: 'default'
+}
+
+resource postgresDataShare 'Microsoft.Storage/storageAccounts/fileServices/shares@2023-01-01' = {
+  parent: fileServices
+  name: postgresDataShareName
+  properties: {
+    shareQuota: 32
+  }
+}
+
 resource containerAppsEnv 'Microsoft.App/managedEnvironments@2023-05-01' = {
   name: containerAppsEnvName
   location: location
@@ -51,51 +74,23 @@ resource containerAppsEnv 'Microsoft.App/managedEnvironments@2023-05-01' = {
   }
 }
 
-resource postgres 'Microsoft.DBforPostgreSQL/flexibleServers@2023-06-01-preview' = {
-  name: postgresServerName
-  location: location
-  sku: {
-    name: 'Standard_B1ms'
-    tier: 'Burstable'
-  }
+resource postgresDataStorage 'Microsoft.App/managedEnvironments/storages@2023-05-01' = {
+  parent: containerAppsEnv
+  name: postgresDataShareName
   properties: {
-    version: '16'
-    administratorLogin: postgresAdminUsername
-    administratorLoginPassword: postgresAdminPassword
-    storage: {
-      storageSizeGB: 32
-    }
-    backup: {
-      backupRetentionDays: 7
-      geoRedundantBackup: 'Disabled'
-    }
-    highAvailability: {
-      mode: 'Disabled'
+    azureFile: {
+      accountName: storageAccount.name
+      accountKey: storageAccount.listKeys().keys[0].value
+      shareName: postgresDataShareName
+      accessMode: 'ReadWrite'
     }
   }
-}
-
-resource postgresDatabase 'Microsoft.DBforPostgreSQL/flexibleServers/databases@2023-06-01-preview' = {
-  parent: postgres
-  name: postgresDatabaseName
-  properties: {
-    charset: 'UTF8'
-    collation: 'en_US.utf8'
-  }
-}
-
-resource postgresFirewallAllowAzure 'Microsoft.DBforPostgreSQL/flexibleServers/firewallRules@2023-06-01-preview' = {
-  parent: postgres
-  name: 'AllowAzureServices'
-  properties: {
-    startIpAddress: '0.0.0.0'
-    endIpAddress: '0.0.0.0'
-  }
+  dependsOn: [
+    postgresDataShare
+  ]
 }
 
 output acrLoginServer string = acr.properties.loginServer
 output acrName string = acr.name
-output postgresFqdn string = postgres.properties.fullyQualifiedDomainName
-output postgresServerName string = postgres.name
-output postgresDatabaseName string = postgresDatabaseName
 output containerAppsEnvName string = containerAppsEnv.name
+output postgresDataStorageName string = postgresDataStorage.name

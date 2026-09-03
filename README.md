@@ -65,10 +65,12 @@ Authentication settings, then rename the file to `azure-idp.yaml` and restart th
 
 ## Deploying to Azure
 
-`azure/deploy.sh` deploys the whole stack to Azure Container Apps (Postgres becomes a managed Azure
-Database for PostgreSQL Flexible Server; Keycloak, the backend, and the frontend run as container apps on
-Azure's `*.azurecontainerapps.io` domain, with HTTPS out of the box). It builds images in the cloud via
-`az acr build`, so a local Docker daemon isn't required.
+`azure/deploy.sh` deploys the whole stack to Azure Container Apps. Postgres runs as a plain `postgres:16-alpine`
+container app (not a managed Azure Database for PostgreSQL server) with its data directory on a persistent Azure
+Files share so it survives restarts/redeploys, reachable only from other apps in the same environment (internal
+TCP ingress, never the public internet). Keycloak, the backend, and the frontend run as container apps on Azure's
+`*.azurecontainerapps.io` domain, with HTTPS out of the box. It builds images in the cloud via `az acr build`, so
+a local Docker daemon isn't required.
 
 ```bash
 az login
@@ -80,9 +82,10 @@ script to change either). Safe to re-run — existing resources are reused rathe
 admin and Keycloak admin passwords are generated on first run and saved to `azure/.secrets.env`
 (gitignored, not stored anywhere else — keep it if you'll re-run the script later).
 
-Rough cost: ~$25-35/month, dominated by the always-on Postgres Flexible Server (`az postgres flexible-server
-stop` between sessions cuts this). Keycloak runs with `min-replicas 1` (its JVM cold start is too slow for
-Container Apps' startup probe when scaling from zero); the backend and frontend scale to zero when idle.
+Rough cost: ~$10-15/month (no managed database — just Container Apps, an Azure Container Registry, and a small
+Storage Account for the Postgres data share). Keycloak and Postgres both run with `min-replicas 1` (Keycloak's JVM
+cold start is too slow for Container Apps' startup probe when scaling from zero; Postgres needs to stay up for
+both Keycloak and the backend); the backend and frontend scale to zero when idle.
 
 After deploying, Google/Microsoft sign-in (if enabled) need their redirect URIs updated in the Google Cloud
 Console / Azure AD app registration to point at the new Keycloak URL the script prints — that's an external
