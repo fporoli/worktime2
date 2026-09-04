@@ -1,0 +1,55 @@
+name: Deploy production (Azure)
+
+# Automated wrapper around azure/deploy.sh, which stays the source of truth for the deploy
+# logic (also still runnable manually/locally exactly as before). This job authenticates to
+# Azure and reconstructs the two files azure/deploy.sh expects from a local checkout - ".env"
+# (Google/Azure AD sign-in app credentials) and "azure/.secrets.env" (the Postgres/Keycloak
+# admin passwords deploy.sh generated on its very first run and re-reads on every run since -
+# this file MUST be reproduced identically on every CI run too, or the script would generate
+# fresh random passwords that don't match the already-deployed resources) - from GitHub
+# secrets, then runs the unmodified script.
+#
+# Required repo secrets:
+#   AZURE_CREDENTIALS - service principal JSON (`az ad sp create-for-rbac --sdk-auth`),
+#     scoped at least to the rg-worktime-prod resource group.
+#   POSTGRES_ADMIN_USERNAME, POSTGRES_ADMIN_PASSWORD, KEYCLOAK_ADMIN_USER,
+#     KEYCLOAK_ADMIN_PASSWORD - copy these verbatim from the existing (gitignored)
+#     azure/.secrets.env on whichever machine last ran the script manually - they must match
+#     exactly, since the live resources were created with these values.
+#   GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, AZURE_CLIENT_ID, AZURE_CLIENT_SECRET,
+#     AZURE_TENANT_ID - the Google/Microsoft sign-in app credentials (same as local .env);
+#     leave the Google/Azure ones as empty secrets if that sign-in option isn't in use.
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch: {}
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: azure/login@v2
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Reconstruct .env and azure/.secrets.env for azure/deploy.sh
+        run: |
+          cat > .env <<EOF
+          GOOGLE_CLIENT_ID=${{ secrets.GOOGLE_CLIENT_ID }}
+          GOOGLE_CLIENT_SECRET=${{ secrets.GOOGLE_CLIENT_SECRET }}
+          AZURE_CLIENT_ID=${{ secrets.AZURE_CLIENT_ID }}
+          AZURE_CLIENT_SECRET=${{ secrets.AZURE_CLIENT_SECRET }}
+          AZURE_TENANT_ID=${{ secrets.AZURE_TENANT_ID }}
+          EOF
+          cat > azure/.secrets.env <<EOF
+          POSTGRES_ADMIN_USERNAME=${{ secrets.POSTGRES_ADMIN_USERNAME }}
+          POSTGRES_ADMIN_PASSWORD=${{ secrets.POSTGRES_ADMIN_PASSWORD }}
+          KEYCLOAK_ADMIN_USER=${{ secrets.KEYCLOAK_ADMIN_USER }}
+          KEYCLOAK_ADMIN_PASSWORD=${{ secrets.KEYCLOAK_ADMIN_PASSWORD }}
+          EOF
+
+      - name: Run azure/deploy.sh
+        run: ./azure/deploy.sh

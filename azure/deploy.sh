@@ -101,7 +101,7 @@ else
   az containerapp create -n postgres -g "$RESOURCE_GROUP" \
     --environment "$CAE_NAME" \
     --image postgres:16-alpine \
-    --ingress internal --transport tcp --target-port 5432 \
+    --ingress internal --transport tcp --target-port 5430 \
     --min-replicas 1 --max-replicas 1 --cpu 0.5 --memory 1.0Gi \
     --secrets pg-user="$POSTGRES_ADMIN_USERNAME" pg-pass="$POSTGRES_ADMIN_PASSWORD" \
     --env-vars \
@@ -109,6 +109,7 @@ else
       POSTGRES_PASSWORD=secretref:pg-pass \
       POSTGRES_DB="$POSTGRES_DB" \
       PGDATA=/var/lib/postgresql/data/pgdata \
+      PGPORT=5430 \
     -o none
 
   # 'update --yaml' replaces whatever top-level sections it includes wholesale (verified:
@@ -134,6 +135,8 @@ properties:
             value: "$POSTGRES_DB"
           - name: PGDATA
             value: /var/lib/postgresql/data/pgdata
+          - name: PGPORT
+            value: "5430"
         volumeMounts:
           - volumeName: postgres-data
             mountPath: /var/lib/postgresql/data
@@ -185,8 +188,8 @@ properties:
           - sh
           - -c
           - |
-            until pg_isready -h $POSTGRES_HOST -p 5432 -U "\$POSTGRES_USER"; do sleep 3; done
-            psql "postgresql://\$POSTGRES_USER:\$POSTGRES_PASSWORD@$POSTGRES_HOST:5432/$POSTGRES_DB" -c "CREATE SCHEMA IF NOT EXISTS auth; CREATE SCHEMA IF NOT EXISTS app;"
+            until pg_isready -h $POSTGRES_HOST -p 5430 -U "\$POSTGRES_USER"; do sleep 3; done
+            psql "postgresql://\$POSTGRES_USER:\$POSTGRES_PASSWORD@$POSTGRES_HOST:5430/$POSTGRES_DB" -c "CREATE SCHEMA IF NOT EXISTS auth; CREATE SCHEMA IF NOT EXISTS app;"
         env:
           - name: POSTGRES_USER
             secretRef: pg-user
@@ -265,7 +268,7 @@ else
              kc-admin="$KEYCLOAK_ADMIN_USER" kc-admin-pass="$KEYCLOAK_ADMIN_PASSWORD" \
     --env-vars \
       KC_DB=postgres \
-      KC_DB_URL="jdbc:postgresql://$POSTGRES_HOST:5432/$POSTGRES_DB?currentSchema=auth" \
+      KC_DB_URL="jdbc:postgresql://$POSTGRES_HOST:5430/$POSTGRES_DB?currentSchema=auth" \
       KC_DB_SCHEMA=auth \
       KC_DB_USERNAME=secretref:pg-user \
       KC_DB_PASSWORD=secretref:pg-pass \
@@ -351,7 +354,7 @@ done
 # happens often), which loses the race against Container Apps' startup probe and
 # causes an unhealthy-replica restart loop. Run it once here instead; the app image's
 # own CMD is just 'node dist/src/main.js' (fast).
-DB_URL="postgres://$POSTGRES_ADMIN_USERNAME:$POSTGRES_ADMIN_PASSWORD@$POSTGRES_HOST:5432/$POSTGRES_DB"
+DB_URL="postgres://$POSTGRES_ADMIN_USERNAME:$POSTGRES_ADMIN_PASSWORD@$POSTGRES_HOST:5430/$POSTGRES_DB"
 
 if az containerapp job show -g "$RESOURCE_GROUP" -n backend-migrate >/dev/null 2>&1; then
   log "Job 'backend-migrate' already exists - skipping create"
@@ -421,8 +424,9 @@ else
     --environment "$CAE_NAME" \
     --image "$ACR_LOGIN_SERVER/worktime-frontend:latest" \
     --registry-server "$ACR_LOGIN_SERVER" --registry-identity system \
-    --target-port 80 --ingress external \
+    --target-port 8000 --ingress external \
     --min-replicas 0 --max-replicas 2 --cpu 0.25 --memory 0.5Gi \
+    --env-vars FRONTEND_PORT=8000 \
     -o none
 fi
 

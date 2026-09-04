@@ -1,0 +1,17 @@
+{
+  "name": "worktime2",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Root scripts for local dev environment 1 (native backend/frontend against Dockerized Postgres/Keycloak).",
+  "scripts": {
+    "dev:infra": "docker compose -f docker-compose.native-dev.yml up -d --build",
+    "dev:infra:down": "docker compose -f docker-compose.native-dev.yml down",
+    "dev:backend": "npm --prefix backend run start:dev",
+    "dev:frontend": "PORT=8001 npm --prefix frontend run dev",
+    "dev": "concurrently -n backend,frontend -c blue,green \"npm:dev:backend\" \"npm:dev:frontend\"",
+    "migrate": "sh -c 'cd backend && set -a && . ./.env && set +a && npm run migration:run'"
+  },
+  "devDependencies": {
+    "concurrently": "^9.0.1"
+  }
+}

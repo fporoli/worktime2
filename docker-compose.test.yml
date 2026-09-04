@@ -1,4 +1,13 @@
-name: worktime2
+# Test environment 3: full production-style stack (real Dockerfiles, no bind mounts) served
+# over HTTPS at test.turbotapir.com / api.test.turbotapir.com / auth.test.turbotapir.com via
+# Caddy's automatic Let's Encrypt. Deployed by Coolify on the VPS (see README) - the
+# .github/workflows/deploy-test.yml workflow just pings Coolify's webhook to redeploy; Coolify
+# itself builds this file directly from the git repo.
+#
+# Internal container ports (300N/800N scheme, matching every other environment) are not
+# publicly visible here - Caddy is the only thing exposed (80/443), and reverse-proxies each
+# subdomain to the right internal container:port.
+name: worktime2-test
 services:
   postgres:
     image: postgres:16-alpine
@@ -6,12 +15,10 @@ services:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DB: ${POSTGRES_DB}
-      PGPORT: ${POSTGRES_PORT}
+      PGPORT: 5433
     volumes:
-      - pgdata:/var/lib/postgresql/data
+      - test_pgdata:/var/lib/postgresql/data
       - ./postgres/init:/docker-entrypoint-initdb.d:ro
-    ports:
-      - "${POSTGRES_PORT}:${POSTGRES_PORT}"
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
       interval: 5s
@@ -23,20 +30,18 @@ services:
     command: start-dev
     environment:
       KC_DB: postgres
-      KC_DB_URL: jdbc:postgresql://postgres:${POSTGRES_PORT}/${POSTGRES_DB}?currentSchema=auth
+      KC_DB_URL: jdbc:postgresql://postgres:5433/${POSTGRES_DB}?currentSchema=auth
       KC_DB_SCHEMA: auth
       KC_DB_USERNAME: ${POSTGRES_USER}
       KC_DB_PASSWORD: ${POSTGRES_PASSWORD}
-      KC_HOSTNAME: localhost
+      KC_HOSTNAME: auth.test.turbotapir.com
       KC_HOSTNAME_STRICT: "false"
       KC_HTTP_ENABLED: "true"
-      KC_HTTP_PORT: ${KEYCLOAK_PORT}
+      KC_HTTP_PORT: 8083
       KC_HEALTH_ENABLED: "true"
       KC_PROXY_HEADERS: xforwarded
       KEYCLOAK_ADMIN: ${KEYCLOAK_ADMIN}
       KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD}
-    expose:
-      - "${KEYCLOAK_PORT}"
     depends_on:
       postgres:
         condition: service_healthy
@@ -53,14 +58,14 @@ services:
       keycloak:
         condition: service_healthy
     environment:
-      KEYCLOAK_URL: http://keycloak:${KEYCLOAK_PORT}
+      KEYCLOAK_URL: http://keycloak:8083
       KEYCLOAK_USER: ${KEYCLOAK_ADMIN}
       KEYCLOAK_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD}
       KEYCLOAK_AVAILABILITYCHECK_ENABLED: "true"
       KEYCLOAK_AVAILABILITYCHECK_TIMEOUT: 60s
       IMPORT_FILES_LOCATIONS: /config/*.yaml
       IMPORT_VAR_SUBSTITUTION_ENABLED: "true"
-      FRONTEND_ORIGIN: https://localhost:${FRONTEND_PORT}
+      FRONTEND_ORIGIN: https://test.turbotapir.com
       GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
       GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET}
       AZURE_CLIENT_ID: ${AZURE_CLIENT_ID}
@@ -70,74 +75,58 @@ services:
       - ./keycloak/realm-config:/config:ro
     restart: "no"
 
-  mailpit:
-    image: axllent/mailpit:latest
-    ports:
-      - "8025:8025"
-      - "1025:1025"
-
   backend:
     build:
       context: ./backend
-      dockerfile: Dockerfile.dev
-    volumes:
-      - ./backend:/app
-      - backend_node_modules:/app/node_modules
-    expose:
-      - "${BACKEND_PORT}"
+      dockerfile: Dockerfile
     environment:
-      NODE_ENV: development
-      PORT: ${BACKEND_PORT}
-      DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:${POSTGRES_PORT}/${POSTGRES_DB}
+      NODE_ENV: production
+      PORT: 3003
+      DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5433/${POSTGRES_DB}
       DATABASE_SCHEMA: app
-      KEYCLOAK_ISSUER_URL: https://localhost:${KEYCLOAK_PORT}/realms/worktime
-      KEYCLOAK_INTERNAL_ISSUER_URL: http://keycloak:${KEYCLOAK_PORT}/realms/worktime
-      FRONTEND_ORIGIN: https://localhost:${FRONTEND_PORT}
+      KEYCLOAK_ISSUER_URL: https://auth.test.turbotapir.com/realms/worktime
+      KEYCLOAK_INTERNAL_ISSUER_URL: http://keycloak:8083/realms/worktime
+      FRONTEND_ORIGIN: https://test.turbotapir.com
     depends_on:
       postgres:
         condition: service_healthy
       keycloak-config-cli:
         condition: service_completed_successfully
-    command: sh -c "npm run migration:run && npm run start:dev"
+    # Prod image's own CMD is just "node dist/src/main.js" (fast, no ts-node) - migrations
+    # are run once here at container start instead, same reasoning as azure/deploy.sh's
+    # separate migration step, just inline since there's no Container-Apps-job equivalent
+    # in plain docker compose.
+    command: sh -c "npm run migration:run && node dist/src/main.js"
 
   frontend:
     build:
       context: ./frontend
-      dockerfile: Dockerfile.dev
-    volumes:
-      - ./frontend:/app
-      - frontend_node_modules:/app/node_modules
-    expose:
-      - "${FRONTEND_PORT}"
+      dockerfile: Dockerfile
+      args:
+        VITE_API_BASE_URL: https://api.test.turbotapir.com
+        VITE_KEYCLOAK_URL: https://auth.test.turbotapir.com
+        VITE_KEYCLOAK_REALM: worktime
+        VITE_KEYCLOAK_CLIENT_ID: worktime-frontend
     environment:
-      PORT: ${FRONTEND_PORT}
-      VITE_API_BASE_URL: https://localhost:${BACKEND_PORT}
-      VITE_KEYCLOAK_URL: https://localhost:${KEYCLOAK_PORT}
-      VITE_KEYCLOAK_REALM: worktime
-      VITE_KEYCLOAK_CLIENT_ID: worktime-frontend
-    command: npm run dev -- --host
+      FRONTEND_PORT: 8003
     depends_on:
       - backend
 
   caddy:
     image: caddy:2-alpine
     volumes:
-      - ./caddy/Caddyfile:/etc/caddy/Caddyfile:ro
-      - ./certs:/certs:ro
-    environment:
-      FRONTEND_PORT: ${FRONTEND_PORT}
-      BACKEND_PORT: ${BACKEND_PORT}
-      KEYCLOAK_PORT: ${KEYCLOAK_PORT}
+      - ./caddy/Caddyfile.test:/etc/caddy/Caddyfile:ro
+      - caddy_test_data:/data
+      - caddy_test_config:/config
     ports:
-      - "${FRONTEND_PORT}:${FRONTEND_PORT}"
-      - "${BACKEND_PORT}:${BACKEND_PORT}"
-      - "${KEYCLOAK_PORT}:${KEYCLOAK_PORT}"
+      - "80:80"
+      - "443:443"
     depends_on:
       - frontend
       - backend
       - keycloak
 
 volumes:
-  pgdata:
-  backend_node_modules:
-  frontend_node_modules:
+  test_pgdata:
+  caddy_test_data:
+  caddy_test_config:

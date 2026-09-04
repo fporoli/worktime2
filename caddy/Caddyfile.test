@@ -1,0 +1,16 @@
+# TLS termination for the test environment: real hostnames, so Caddy automatically obtains
+# and renews Let's Encrypt certificates for each (no manual cert files, unlike the local dev
+# Caddyfile). DNS for these three names must point at this VPS before Caddy can complete the
+# ACME HTTP-01 challenge.
+
+test.turbotapir.com {
+	reverse_proxy frontend:8003
+}
+
+api.test.turbotapir.com {
+	reverse_proxy backend:3003
+}
+
+auth.test.turbotapir.com {
+	reverse_proxy keycloak:8083
+}

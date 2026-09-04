@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(docker compose *)",
+      "Bash(tee /tmp/https_deploy.log)",
+      "Bash(pg_isready -h localhost -p 5434)",
+      "Bash(npm run *)",
+      "Bash(tee /tmp/env1_dev.log)",
+      "Bash(curl -sf http://localhost:3001/health)",
+      "Bash(curl -sf http://localhost:8001/)",
+      "Bash(pkill -f \"nest start --watch\")",
+      "Bash(pkill -f \"node_modules/.bin/vite\")",
+      "Bash(grep -E \"nest start|vite$\")"
+    ]
+  }
+}

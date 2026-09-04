@@ -8,7 +8,8 @@
 #      Copy the secret VALUE (not the Secret ID) immediately - it's only shown once.
 #    - App registrations > (your app) > Authentication > Add a platform > Web,
 #      with redirect URI:
-#      http://localhost:8080/realms/worktime/broker/azure/endpoint
+#      http://localhost:8081/realms/worktime/broker/azure/endpoint
+#      (or http://localhost:<KEYCLOAK_PORT>/... if you changed KEYCLOAK_PORT in .env)
 # 2. Set AZURE_CLIENT_ID, AZURE_CLIENT_SECRET and AZURE_TENANT_ID in your root .env file.
 #    (AZURE_CLIENT_ID and AZURE_TENANT_ID are not secret - they're already filled in
 #    .env.example as a starting point; only the client secret needs to be pasted in.)

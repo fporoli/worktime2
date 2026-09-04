@@ -1,0 +1,24 @@
+name: Deploy test environment
+
+# Coolify (on the VPS) is already configured to build/run docker-compose.test.yml directly
+# from this repo - this workflow's only job is to tell it a new commit is available. Requires
+# a COOLIFY_TEST_WEBHOOK_URL secret (from the Coolify UI: the test resource's "Webhook" /
+# deploy-trigger URL) and, if Coolify's webhook requires auth, a COOLIFY_TEST_TOKEN secret.
+on:
+  push:
+    branches:
+      - test
+  workflow_dispatch: {}
+
+jobs:
+  trigger-coolify-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger Coolify redeploy
+        run: |
+          curl --fail --silent --show-error \
+            -X POST "$COOLIFY_TEST_WEBHOOK_URL" \
+            -H "Authorization: Bearer $COOLIFY_TEST_TOKEN"
+        env:
+          COOLIFY_TEST_WEBHOOK_URL: ${{ secrets.COOLIFY_TEST_WEBHOOK_URL }}
+          COOLIFY_TEST_TOKEN: ${{ secrets.COOLIFY_TEST_TOKEN }}

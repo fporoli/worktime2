@@ -1,0 +1,18 @@
+# TLS termination for local dev: browser-facing traffic is HTTPS (cert from mkcert, see
+# certs/), everything behind this proxy stays plain HTTP on the internal Docker network.
+# Same host ports as before - only the scheme changes, from the browser's point of view.
+
+:{$FRONTEND_PORT} {
+	tls /certs/localhost.pem /certs/localhost-key.pem
+	reverse_proxy frontend:{$FRONTEND_PORT}
+}
+
+:{$BACKEND_PORT} {
+	tls /certs/localhost.pem /certs/localhost-key.pem
+	reverse_proxy backend:{$BACKEND_PORT}
+}
+
+:{$KEYCLOAK_PORT} {
+	tls /certs/localhost.pem /certs/localhost-key.pem
+	reverse_proxy keycloak:{$KEYCLOAK_PORT}
+}

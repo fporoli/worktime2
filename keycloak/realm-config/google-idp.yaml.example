@@ -2,7 +2,8 @@
 #
 # 1. Create OAuth 2.0 credentials in Google Cloud Console (APIs & Services > Credentials),
 #    with authorized redirect URI:
-#    http://localhost:8080/realms/worktime/broker/google/endpoint
+#    http://localhost:8081/realms/worktime/broker/google/endpoint
+#    (or http://localhost:<KEYCLOAK_PORT>/... if you changed KEYCLOAK_PORT in .env)
 # 2. Set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET in your root .env file.
 # 3. Copy this file to google-idp.yaml (same directory) so it gets picked up by
 #    keycloak-config-cli, then restart the stack.
