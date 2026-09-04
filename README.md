@@ -27,7 +27,7 @@ everything on the standard HTTPS port.
 |---|---|---|---|---|---|---|
 | 1 | Local dev (native) | 3001 | 8001 | 8081 | 5431 | `npm run dev` (repo root) |
 | 2 | Dev (full Docker + Caddy) | 3002 | 8002 | 8082 | 5432 | `docker compose up` |
-| 3 | Test (full Docker + Caddy) | 3003 | 8003 | 8083 | 5433 | GitHub Action → Coolify (VPS) |
+| 3 | Test (full Docker + Caddy) | 3003 | 8003 | 8083 | 5433 | GitHub Action → ghcr.io → SSH deploy (VPS) |
 | 4 | Production (Azure) | 3000 | 8000 | 8080 | 5430 | GitHub Action + `azure/deploy.sh` |
 
 ## 1. Local dev (native, via npm)
@@ -38,6 +38,7 @@ Docker.
 **Prerequisites**: Node.js, Docker.
 
 ```bash
+cp .env.local_dev .env
 npm install                # root scripts (concurrently) - once
 npm run dev:infra           # starts Postgres + Keycloak + Mailpit in Docker (docker-compose.native-dev.yml)
 npm run migrate              # applies TypeORM migrations to the Dockerized Postgres
@@ -63,7 +64,7 @@ terminates TLS with a locally-trusted certificate.
 (`brew install mkcert nss`, or see mkcert's own README for other platforms) — only needed once per machine.
 
 ```bash
-cp .env.example .env
+cp .env.dev .env
 mkcert -install                                       # once per machine - installs a local CA so browsers trust the cert below
 mkdir -p certs
 mkcert -cert-file certs/localhost.pem -key-file certs/localhost-key.pem localhost 127.0.0.1 ::1
@@ -113,22 +114,50 @@ To add "Sign in with Microsoft" against a specific Azure AD tenant, see
 Certificates & secrets) and set `AZURE_CLIENT_SECRET`, add the redirect URI documented in that file to the app's
 Authentication settings, then rename the file to `azure-idp.yaml` and restart the stack.
 
-## 3. Test (Coolify, HTTPS via real domain)
+## 3. Test (own VPS, deployed via GitHub Actions + ghcr.io)
 
 Same shape as environment 2, but built from the production Dockerfiles (no bind mounts, no dev servers) and
 reachable at `test.turbotapir.com` / `api.test.turbotapir.com` / `auth.test.turbotapir.com`, with Caddy obtaining
 real Let's Encrypt certificates for each automatically.
 
-**One-time manual setup (Coolify has no API access from this repo, so this can't be scripted):**
-1. In Coolify, create a "Docker Compose" resource pointed at this git repo, using `docker-compose.test.yml`.
-2. Set its environment variables from `.env.test.example` (real values — that file itself has none).
-3. Point `test.turbotapir.com`, `api.test.turbotapir.com`, and `auth.test.turbotapir.com`'s DNS at the VPS.
-4. Create a deploy webhook for the resource in Coolify, and add its URL (and token, if any) as the
-   `COOLIFY_TEST_WEBHOOK_URL` / `COOLIFY_TEST_TOKEN` GitHub Actions secrets on this repo.
+`.github/workflows/deploy-test.yml` builds the backend/frontend images, pushes them to `ghcr.io` (this repo is
+public, so the VPS needs no registry credentials to pull them — just confirm the two packages are Public under
+[github.com/fporoli?tab=packages](https://github.com/fporoli?tab=packages) after the first run; new packages
+sometimes default to private), then SSHes into the VPS and runs `docker-compose.test.yml` with `pull && up -d`.
+The VPS never builds anything itself.
 
-After that, `.github/workflows/deploy-test.yml` redeploys automatically on every push to a `test` branch (or via
-"Run workflow" in the Actions tab) — it just pings the Coolify webhook; Coolify itself pulls the new commit and
-rebuilds.
+**One-time VPS setup** (as whatever non-root user will run the deploys — the SSH deploy itself never needs
+root, but that user does need to be in the `docker` group, since the Docker socket otherwise only accepts
+`root`/`docker`-group members):
+```bash
+# On the VPS - Docker is already installed if Coolify runs there; if not: https://docs.docker.com/engine/install/
+sudo usermod -aG docker "$USER" && newgrp docker   # once, if not already in the docker group
+sudo mkdir -p /opt/worktime2 && sudo chown "$USER" /opt/worktime2
+git clone https://github.com/fporoli/worktime2.git /opt/worktime2
+cd /opt/worktime2
+cp .env.dev .env   # or write one by hand - same keys as .env.dev, real values, never committed
+```
+
+**One-time local setup** (generates a deploy-only SSH key, and gives GitHub Actions somewhere to log in to):
+```bash
+ssh-keygen -t ed25519 -f ~/.ssh/worktime2_deploy -N ""
+ssh-copy-id -i ~/.ssh/worktime2_deploy.pub -p <port> <user>@<vps-host>   # or paste the .pub manually into ~/.ssh/authorized_keys on the VPS
+```
+Then in the GitHub repo (Settings > Secrets and variables > Actions) add:
+- `VPS_HOST` — the VPS's IP or hostname
+- `VPS_USER` — the SSH user from the command above
+- `VPS_SSH_KEY` — contents of `~/.ssh/worktime2_deploy` (the *private* key)
+- `VPS_SSH_PORT` — only if not 22
+
+Point `test.turbotapir.com`, `api.test.turbotapir.com`, and `auth.test.turbotapir.com`'s DNS at the VPS before the
+first deploy (Caddy needs that to complete its Let's Encrypt ACME challenge).
+
+**Important if Coolify is also running on this VPS**: Coolify's own proxy (Traefik) almost always binds host
+ports 80/443, which this stack's own `caddy` service also needs — the two will conflict. Either stop routing
+those ports through Coolify for this stack, or free 80/443 some other way, before the first deploy.
+
+After the one-time setup, every push to a `test` branch (or "Run workflow" in the Actions tab) redeploys
+automatically.
 
 ## 4. Production (Azure)
 

@@ -1,8 +1,10 @@
-# Test environment 3: full production-style stack (real Dockerfiles, no bind mounts) served
-# over HTTPS at test.turbotapir.com / api.test.turbotapir.com / auth.test.turbotapir.com via
-# Caddy's automatic Let's Encrypt. Deployed by Coolify on the VPS (see README) - the
-# .github/workflows/deploy-test.yml workflow just pings Coolify's webhook to redeploy; Coolify
-# itself builds this file directly from the git repo.
+# Test environment 3: full production-style stack served over HTTPS at test.turbotapir.com /
+# api.test.turbotapir.com / auth.test.turbotapir.com via Caddy's automatic Let's Encrypt.
+# Deployed by .github/workflows/deploy-test.yml: it builds the backend/frontend images and
+# pushes them to ghcr.io, then SSHes into the VPS and runs this file with "pull && up -d" - the
+# VPS only ever pulls prebuilt images, it never builds anything itself. keycloak-config-cli
+# still runs from the checked-out repo's ./keycloak/realm-config (the VPS has a git clone of
+# this repo for the compose/Caddy/postgres-init files anyway - see README).
 #
 # Internal container ports (300N/800N scheme, matching every other environment) are not
 # publicly visible here - Caddy is the only thing exposed (80/443), and reverse-proxies each
@@ -76,9 +78,7 @@ services:
     restart: "no"
 
   backend:
-    build:
-      context: ./backend
-      dockerfile: Dockerfile
+    image: ghcr.io/fporoli/worktime2-backend:test
     environment:
       NODE_ENV: production
       PORT: 3003
@@ -99,14 +99,7 @@ services:
     command: sh -c "npm run migration:run && node dist/src/main.js"
 
   frontend:
-    build:
-      context: ./frontend
-      dockerfile: Dockerfile
-      args:
-        VITE_API_BASE_URL: https://api.test.turbotapir.com
-        VITE_KEYCLOAK_URL: https://auth.test.turbotapir.com
-        VITE_KEYCLOAK_REALM: worktime
-        VITE_KEYCLOAK_CLIENT_ID: worktime-frontend
+    image: ghcr.io/fporoli/worktime2-frontend:test
     environment:
       FRONTEND_PORT: 8003
     depends_on:
