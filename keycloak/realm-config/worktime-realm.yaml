@@ -18,6 +18,41 @@ smtpServer:
   auth: "false"
   starttls: "false"
 
+# Demo/fixture accounts. backend/src/seed.ts looks these up by email in Postgres (auth.user_entity)
+# to link the matching app_user row - keycloak-config-cli assigns its own id at creation time,
+# so the two are not correlated by a shared fixed id.
+users:
+  - username: alice@example.com
+    email: alice@example.com
+    firstName: Alice
+    lastName: Example
+    enabled: true
+    emailVerified: true
+    credentials:
+      - type: password
+        value: change-me
+        temporary: false
+  - username: bob@example.com
+    email: bob@example.com
+    firstName: Bob
+    lastName: Example
+    enabled: true
+    emailVerified: true
+    credentials:
+      - type: password
+        value: change-me
+        temporary: false
+  - username: james@example.com
+    email: james@example.com
+    firstName: James
+    lastName: Example
+    enabled: true
+    emailVerified: true
+    credentials:
+      - type: password
+        value: change-me
+        temporary: false
+
 clients:
   - clientId: worktime-frontend
     name: Worktime Frontend

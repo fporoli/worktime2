@@ -14,8 +14,9 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DB: ${POSTGRES_DB}
       PGPORT: 5431
+      PGDATA: /var/lib/postgresql/data/pgdata
     volumes:
-      - native_pgdata:/var/lib/postgresql/data
+      - ./pgdata/native-dev:/var/lib/postgresql/data
       - ./postgres/init:/docker-entrypoint-initdb.d:ro
     ports:
       - "5431:5431"
@@ -82,5 +83,3 @@ services:
       - "8026:8025"
       - "1026:1025"
 
-volumes:
-  native_pgdata:

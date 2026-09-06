@@ -6,10 +6,13 @@
   "scripts": {
     "dev:infra": "docker compose -f docker-compose.native-dev.yml up -d --build",
     "dev:infra:down": "docker compose -f docker-compose.native-dev.yml down",
+    "docker:down": "docker compose -f docker-compose.yml down",
+    "test:down": "docker compose -f docker-compose.test.yml down",
     "dev:backend": "npm --prefix backend run start:dev",
     "dev:frontend": "PORT=8001 npm --prefix frontend run dev",
     "dev": "concurrently -n backend,frontend -c blue,green \"npm:dev:backend\" \"npm:dev:frontend\"",
-    "migrate": "sh -c 'cd backend && set -a && . ./.env && set +a && npm run migration:run'"
+    "migrate": "sh -c 'cd backend && set -a && . ./.env && set +a && npm run migration:run'",
+    "seed": "sh -c 'cd backend && set -a && . ./.env && set +a && npm run seed'"
   },
   "devDependencies": {
     "concurrently": "^9.0.1"

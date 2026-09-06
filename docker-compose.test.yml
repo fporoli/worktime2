@@ -18,8 +18,9 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DB: ${POSTGRES_DB}
       PGPORT: 5433
+      PGDATA: /var/lib/postgresql/data/pgdata
     volumes:
-      - test_pgdata:/var/lib/postgresql/data
+      - ./pgdata/test:/var/lib/postgresql/data
       - ./postgres/init:/docker-entrypoint-initdb.d:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
@@ -96,7 +97,7 @@ services:
     # are run once here at container start instead, same reasoning as azure/deploy.sh's
     # separate migration step, just inline since there's no Container-Apps-job equivalent
     # in plain docker compose.
-    command: sh -c "npm run migration:run && node dist/src/main.js"
+    command: sh -c "npm run migration:run && npm run seed && node dist/src/main.js"
 
   frontend:
     image: ghcr.io/fporoli/worktime2-frontend:test
@@ -120,6 +121,5 @@ services:
       - keycloak
 
 volumes:
-  test_pgdata:
   caddy_test_data:
   caddy_test_config:

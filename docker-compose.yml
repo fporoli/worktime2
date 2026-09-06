@@ -7,8 +7,9 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DB: ${POSTGRES_DB}
       PGPORT: ${POSTGRES_PORT}
+      PGDATA: /var/lib/postgresql/data/pgdata
     volumes:
-      - pgdata:/var/lib/postgresql/data
+      - ./pgdata/dev:/var/lib/postgresql/data
       - ./postgres/init:/docker-entrypoint-initdb.d:ro
     ports:
       - "${POSTGRES_PORT}:${POSTGRES_PORT}"
@@ -98,7 +99,7 @@ services:
         condition: service_healthy
       keycloak-config-cli:
         condition: service_completed_successfully
-    command: sh -c "npm run migration:run && npm run start:dev"
+    command: sh -c "npm run migration:run && npm run seed && npm run start:dev"
 
   frontend:
     build:
@@ -138,6 +139,5 @@ services:
       - keycloak
 
 volumes:
-  pgdata:
   backend_node_modules:
   frontend_node_modules:
