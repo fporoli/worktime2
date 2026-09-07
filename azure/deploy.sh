@@ -26,6 +26,17 @@ ensure_job_registry_and_image() {
   az containerapp job update -n "$job_name" -g "$RESOURCE_GROUP" --image "$image" -o none
 }
 
+# 'containerapp create' no-ops when the app already exists, so a redeploy that only rebuilds
+# the image (backend/frontend, tagged ':latest') would otherwise leave the running app on
+# whatever image it last pulled. 'containerapp update --image' with an unchanged tag string
+# doesn't reliably create a new revision either (observed directly), so force one explicitly
+# with a unique suffix every run - that also guarantees a fresh pull from the registry.
+ensure_containerapp_image() {
+  local app_name="$1" image="$2"
+  az containerapp update -n "$app_name" -g "$RESOURCE_GROUP" \
+    --image "$image" --revision-suffix "deploy-$(date +%Y%m%d%H%M%S)" -o none
+}
+
 # --- 0. preconditions ---
 if ! az account show >/dev/null 2>&1; then
   echo "Not logged in to Azure. Run 'az login' first, then re-run this script." >&2
@@ -414,6 +425,7 @@ else
       FRONTEND_ORIGIN="https://$FRONTEND_FQDN" \
     -o none
 fi
+ensure_containerapp_image backend "$ACR_LOGIN_SERVER/worktime-backend:latest"
 
 # --- 9. frontend ---
 if az containerapp show -g "$RESOURCE_GROUP" -n frontend >/dev/null 2>&1; then
@@ -429,6 +441,7 @@ else
     --env-vars FRONTEND_PORT=8000 \
     -o none
 fi
+ensure_containerapp_image frontend "$ACR_LOGIN_SERVER/worktime-frontend:latest"
 
 echo
 echo "=========================================================="
